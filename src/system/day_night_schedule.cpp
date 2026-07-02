@@ -7,29 +7,25 @@
 #include <cmath>
 #include <ctime>
 #include <numbers>
+#include <utility>
 
 namespace day_night_schedule {
 
   namespace {
 
     int timeToMinutes(std::string_view hhmm) {
+      if (hhmm.size() != 5) {
+        return 0; // unreachable in practice: callers validate with normalizedClock first
+      }
       return (hhmm[0] - '0') * 600 + (hhmm[1] - '0') * 60 + (hhmm[3] - '0') * 10 + (hhmm[4] - '0');
     }
 
-    int currentLocalMinutes() {
+    std::pair<int, int> currentLocalTime() {
       const auto now = std::chrono::system_clock::now();
       const std::time_t t = std::chrono::system_clock::to_time_t(now);
       std::tm local{};
       ::localtime_r(&t, &local);
-      return local.tm_hour * 60 + local.tm_min;
-    }
-
-    int currentLocalSeconds() {
-      const auto now = std::chrono::system_clock::now();
-      const std::time_t t = std::chrono::system_clock::to_time_t(now);
-      std::tm local{};
-      ::localtime_r(&t, &local);
-      return local.tm_sec;
+      return {local.tm_hour * 60 + local.tm_min, local.tm_sec};
     }
 
     std::chrono::milliseconds sinceBoundaryMs(int nowMin, int nowSec, int lastBoundaryMin) {
@@ -136,12 +132,8 @@ namespace day_night_schedule {
     return {};
   }
 
-  bool isManualMode(
-      const LocationConfig& config, std::optional<double> resolvedLatitude, std::optional<double> resolvedLongitude
-  ) {
-    // Fixed clock times apply only when no coordinates (resolved or manual) are available.
-    return !hasResolvedCoordinates(resolvedLatitude, resolvedLongitude)
-        && !(config.latitude.has_value() && config.longitude.has_value())
+  bool isManualMode(const LocationConfig& config) {
+    return config.useFixedTimes
         && normalizedClock(config.sunset).has_value()
         && normalizedClock(config.sunrise).has_value();
   }
@@ -149,10 +141,9 @@ namespace day_night_schedule {
   Evaluation evaluate(
       const LocationConfig& config, std::optional<double> resolvedLatitude, std::optional<double> resolvedLongitude
   ) {
-    const int nowMin = currentLocalMinutes();
-    const int nowSec = currentLocalSeconds();
+    const auto [nowMin, nowSec] = currentLocalTime();
 
-    if (isManualMode(config, resolvedLatitude, resolvedLongitude)) {
+    if (isManualMode(config)) {
       const int sunsetMin = timeToMinutes(config.sunset);
       const int sunriseMin = timeToMinutes(config.sunrise);
       const bool night = sunsetMin < sunriseMin ? (nowMin >= sunsetMin && nowMin < sunriseMin)
@@ -172,15 +163,18 @@ namespace day_night_schedule {
 
     const auto coords = resolveCoordinates(config, resolvedLatitude, resolvedLongitude);
     if (!coords.latitude.has_value() || !coords.longitude.has_value()) {
+      // No coordinates available, retry in 1 hour in case location resolves later.
       return Evaluation{.night = false, .untilBoundary = std::chrono::hours(1)};
     }
 
     const auto times = computeSolarTimes(*coords.latitude, *coords.longitude);
     if (times.sunriseMinutes == 0 && times.sunsetMinutes == 0) {
-      return Evaluation{.night = true, .untilBoundary = std::chrono::hours(1)};
+      // Polar night: sun never rises. Retry in 6 hours (frequent recheck not useful here).
+      return Evaluation{.night = true, .untilBoundary = std::chrono::hours(6)};
     }
     if (times.sunriseMinutes == 0 && times.sunsetMinutes == 1440) {
-      return Evaluation{.night = false, .untilBoundary = std::chrono::hours(1)};
+      // Polar day: sun never sets. Retry in 6 hours (frequent recheck not useful here).
+      return Evaluation{.night = false, .untilBoundary = std::chrono::hours(6)};
     }
 
     const int sunset = times.sunsetMinutes;

@@ -400,7 +400,7 @@ GammaService::GammaTarget GammaService::computeTarget() const {
     return {.kelvin = nightTemp, .transitioning = false};
   }
 
-  const bool manualMode = day_night_schedule::isManualMode(m_location, m_resolvedLatitude, m_resolvedLongitude);
+  const bool manualMode = day_night_schedule::isManualMode(m_location);
   if (!manualMode) {
     const auto coords = day_night_schedule::resolveCoordinates(m_location, m_resolvedLatitude, m_resolvedLongitude);
     if (!coords.latitude.has_value() || !coords.longitude.has_value()) {
@@ -408,8 +408,16 @@ GammaService::GammaTarget GammaService::computeTarget() const {
         kLog.debug("night light schedule waiting for location resolution");
       } else if (m_location.latitude.has_value() != m_location.longitude.has_value()) {
         kLog.warn("need both latitude and longitude for manual location");
+      } else if (
+          day_night_schedule::normalizedClock(m_location.sunset).has_value()
+          && day_night_schedule::normalizedClock(m_location.sunrise).has_value()
+      ) {
+        kLog.warn("sunrise/sunset times are set but custom time is off! Enable it in Appearance settings to use them");
       } else {
-        kLog.warn("no schedule: enable auto-locate, set an address, or set latitude/longitude or sunset/sunrise");
+        kLog.warn(
+            "no schedule: enable auto-locate, set an address, set latitude/longitude, or enable custom time in "
+            "appearance settings"
+        );
       }
       return {};
     }
@@ -458,7 +466,7 @@ void GammaService::apply() {
     return;
   }
 
-  const bool manualMode = day_night_schedule::isManualMode(m_location, m_resolvedLatitude, m_resolvedLongitude);
+  const bool manualMode = day_night_schedule::isManualMode(m_location);
   if (effectiveEnabled() && manualMode) {
     scheduleManualTimer();
   } else if (effectiveEnabled() && !effectiveForce()) {

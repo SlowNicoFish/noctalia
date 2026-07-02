@@ -1434,6 +1434,10 @@
           "description": "Choose dark, light, or auto based on time of day",
           "label": "Theme Mode"
         },
+        "custom-time": {
+          "description": "Use manual sunrise/sunset times instead of computing from coordinates",
+          "label": "Custom Time"
+        },
         "ui-scale": {
           "description": "Scale the entire interface up or down",
           "label": "UI Scale"
@@ -2243,11 +2247,11 @@
           "label": "Sound Volume"
         },
         "sunrise": {
-          "description": "Manual sunrise time in HH:MM, used when no location is set",
+          "description": "Time of day for sunrise (HH:MM), used with custom time schedule",
           "label": "Sunrise"
         },
         "sunset": {
-          "description": "Manual sunset time in HH:MM, used when no location is set",
+          "description": "Time of day for sunset (HH:MM), used with custom time schedule",
           "label": "Sunset"
         },
         "sync-monitor-brightness": {
