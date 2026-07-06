@@ -415,40 +415,6 @@ namespace settings {
         tr("settings.schema.appearance.theme-mode.description"), {"theme", "mode"},
         asSegmented(enumSelect(kThemeModes, cfg.theme.mode)), "dark light auto colors"
     ));
-    // Custom time toggle for auto mode: when on, uses fixed sunrise/sunset instead of coordinates.
-    const SettingVisibility fixedTimesOn{std::vector<SettingVisibilityCondition>{
-        {{"theme", "mode"}, {"auto"}},
-        {{"location", "use_fixed_times"}, {"true"}},
-    }};
-    {
-      auto e = makeEntry(
-          SettingsSection::Appearance, "theme", tr("settings.schema.appearance.custom-time.label"),
-          tr("settings.schema.appearance.custom-time.description"), {"location", "use_fixed_times"},
-          ToggleSetting{cfg.location.useFixedTimes}, "auto theme schedule custom time sunrise sunset"
-      );
-      e.visibleWhen = SettingVisibility{{"theme", "mode"}, {"auto"}};
-      entries.push_back(std::move(e));
-    }
-    {
-      auto e = makeEntry(
-          SettingsSection::Appearance, "theme", tr("settings.schema.services.sunset.label"),
-          tr("settings.schema.services.sunset.description"), {"location", "sunset"},
-          TextSetting{.value = cfg.location.sunset, .placeholder = "20:30", .browseFileExtensions = {}},
-          "time schedule sunset"
-      );
-      e.visibleWhen = fixedTimesOn;
-      entries.push_back(std::move(e));
-    }
-    {
-      auto e = makeEntry(
-          SettingsSection::Appearance, "theme", tr("settings.schema.services.sunrise.label"),
-          tr("settings.schema.services.sunrise.description"), {"location", "sunrise"},
-          TextSetting{.value = cfg.location.sunrise, .placeholder = "07:30", .browseFileExtensions = {}},
-          "time schedule sunrise"
-      );
-      e.visibleWhen = fixedTimesOn;
-      entries.push_back(std::move(e));
-    }
     entries.push_back(makeEntry(
         SettingsSection::Appearance, "theme", tr("settings.schema.appearance.palette-source.label"),
         tr("settings.schema.appearance.palette-source.description"), {"theme", "source"},
@@ -2129,6 +2095,37 @@ namespace settings {
           true
       );
       e.visibleWhen = manualLocationControlsVisible;
+      entries.push_back(std::move(e));
+    }
+
+    // Custom scheduling — explicit sunrise/sunset times for night light and theme auto mode.
+    {
+      auto e = makeEntry(
+          SettingsSection::Location, "location", tr("settings.schema.services.custom-scheduling.label"),
+          tr("settings.schema.services.custom-scheduling.description"), {"location", "enable_custom_scheduling"},
+          ToggleSetting{cfg.location.enableCustomScheduling}, "schedule custom time sunrise sunset"
+      );
+      entries.push_back(std::move(e));
+    }
+    const SettingVisibility customSchedOn = [](const Config& c) { return c.location.enableCustomScheduling; };
+    {
+      auto e = makeEntry(
+          SettingsSection::Location, "location", tr("settings.schema.services.sunset.label"),
+          tr("settings.schema.services.sunset.description"), {"location", "sunset"},
+          TextSetting{.value = cfg.location.sunset, .placeholder = "20:30", .browseFileExtensions = {}},
+          "time schedule sunset"
+      );
+      e.visibleWhen = customSchedOn;
+      entries.push_back(std::move(e));
+    }
+    {
+      auto e = makeEntry(
+          SettingsSection::Location, "location", tr("settings.schema.services.sunrise.label"),
+          tr("settings.schema.services.sunrise.description"), {"location", "sunrise"},
+          TextSetting{.value = cfg.location.sunrise, .placeholder = "07:30", .browseFileExtensions = {}},
+          "time schedule sunrise"
+      );
+      e.visibleWhen = customSchedOn;
       entries.push_back(std::move(e));
     }
 

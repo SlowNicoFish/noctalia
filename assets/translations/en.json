@@ -1447,10 +1447,6 @@
           "description": "Choose dark, light, or auto based on time of day",
           "label": "Theme Mode"
         },
-        "custom-time": {
-          "description": "Use manual sunrise/sunset times instead of computing from coordinates",
-          "label": "Custom Time"
-        },
         "ui-scale": {
           "description": "Scale the entire interface up or down",
           "label": "UI Scale"
@@ -2215,6 +2211,10 @@
           "description": "How often to sync calendar events (minutes)",
           "label": "Refresh Interval"
         },
+        "custom-scheduling": {
+          "description": "Use manual sunrise/sunset times instead of computing from coordinates",
+          "label": "Custom Scheduling"
+        },
         "day-temperature": {
           "description": "Color temperature during the day (Kelvin)",
           "label": "Day Temperature"
@@ -2276,11 +2276,11 @@
           "label": "Sound Volume"
         },
         "sunrise": {
-          "description": "Time of day for sunrise (HH:MM), used with custom time schedule",
+          "description": "Time of day for sunrise (HH:MM), used with custom scheduling",
           "label": "Sunrise"
         },
         "sunset": {
-          "description": "Time of day for sunset (HH:MM), used with custom time schedule",
+          "description": "Time of day for sunset (HH:MM), used with custom scheduling",
           "label": "Sunset"
         },
         "sync-monitor-brightness": {

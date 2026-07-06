@@ -412,11 +412,11 @@ GammaService::GammaTarget GammaService::computeTarget() const {
           day_night_schedule::normalizedClock(m_location.sunset).has_value()
           && day_night_schedule::normalizedClock(m_location.sunrise).has_value()
       ) {
-        kLog.warn("sunrise/sunset times are set but custom time is off! Enable it in Appearance settings to use them");
+        kLog.warn("sunrise/sunset times are set but custom scheduling is off! Enable it in Location settings to use them");
       } else {
         kLog.warn(
-            "no schedule: enable auto-locate, set an address, set latitude/longitude, or enable custom time in "
-            "appearance settings"
+            "no schedule: enable auto-locate, set an address, set latitude/longitude, or enable custom scheduling in "
+            "location settings"
         );
       }
       return {};

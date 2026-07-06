@@ -133,7 +133,7 @@ namespace day_night_schedule {
   }
 
   bool isManualMode(const LocationConfig& config) {
-    return config.useFixedTimes
+    return config.enableCustomScheduling
         && normalizedClock(config.sunset).has_value()
         && normalizedClock(config.sunrise).has_value();
   }
