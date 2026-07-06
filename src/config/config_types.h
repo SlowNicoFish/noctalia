@@ -24,6 +24,7 @@ struct WaylandOutput;
 struct BarCapsuleGroupStyle {
   std::string id;
   std::vector<std::string> members; // ordered member widget references
+  bool enabled = true;
   ColorSpec fill = colorSpecFromRole(ColorRole::SurfaceVariant);
   // True when `border` is explicitly present (empty value = no outline); mirrors bar/widget border semantics.
   bool borderSpecified = false;
@@ -95,6 +96,7 @@ struct BarMonitorOverride {
   std::optional<double> widgetCapsulePadding;
   std::optional<double> widgetCapsuleRadius;
   std::optional<double> widgetCapsuleOpacity;
+  std::optional<bool> hoverHighlight;
   BarDeadZoneOverride deadZone;
 
   bool operator==(const BarMonitorOverride&) const = default;
@@ -170,6 +172,8 @@ struct BarConfig {
   // True when `capsule_border` appears under `[bar.*]` (empty value = no outline for widgets that inherit border).
   bool widgetCapsuleBorderSpecified = false;
   std::optional<ColorSpec> widgetCapsuleBorder;
+  // Soft tint of a widget's foreground color over the widget under the pointer (per member in capsule groups).
+  bool hoverHighlight = true;
   BarDeadZoneConfig deadZone;
   std::vector<BarMonitorOverride> monitorOverrides;
 
@@ -540,6 +544,7 @@ struct DockConfig {
   std::int32_t radiusTopRight = 16;    // dock background top-right corner radius
   std::int32_t radiusBottomLeft = 16;  // dock background bottom-left corner radius
   std::int32_t radiusBottomRight = 16; // dock background bottom-right corner radius
+  bool concaveEdgeCorners = false;     // carve concave corners on the side that touches the screen edge
   std::int32_t marginEnds = 0;         // inset from each end of the dock along its main axis
   std::int32_t marginEdge = 8;         // distance from the nearest screen edge (floats the dock when > 0)
   bool shadow = true;                  // use the global shell shadow
@@ -917,6 +922,7 @@ struct ShellConfig {
   struct PrivacyConfig {
     std::string micFilterRegex;
     std::string camFilterRegex;
+    std::string screenFilterRegex;
 
     bool operator==(const PrivacyConfig&) const = default;
   };
@@ -928,6 +934,8 @@ struct ShellConfig {
   std::string timeFormat = "{:%H:%M}";
   std::string dateFormat = "%A, %x";
   bool offlineMode = false;
+  /// Resolve and show the connection's external (WAN) IP in the Control Center network tab.
+  bool externalIpEnabled = false;
   bool telemetryEnabled = false;
   bool setupWizardEnabled = true;
   bool niriOverviewTypeToLaunchEnabled = false;
@@ -935,7 +943,7 @@ struct ShellConfig {
   PasswordMaskStyle passwordMaskStyle = PasswordMaskStyle::CircleFilled;
   AnimationConfig animation;
   std::string avatarPath;
-  bool settingsShowAdvanced = false;
+  bool settingsShowAdvanced = true;
   bool middleClickOpensWidgetSettings = true;
   bool showLocation = true;
   bool appIconColorize = false;
@@ -1326,11 +1334,17 @@ struct ThemeConfig {
 struct ControlCenterConfig {
   static constexpr std::int32_t kDefaultWidth = 700;
 
+  struct CalendarTabConfig {
+    bool showEventsCard = true;
+    bool operator==(const CalendarTabConfig&) const = default;
+  };
+
   std::vector<ShortcutConfig> shortcuts;
   std::vector<std::string> hiddenTabs; // tab keys (see kTabs) the user has hidden; empty = all available shown
   ControlCenterSidebarMode sidebarMode = ControlCenterSidebarMode::Compact;
   ControlCenterSidebarMode sidebarSectionMode = ControlCenterSidebarMode::Compact;
   std::int32_t width = kDefaultWidth; // full-sidebar logical width; compact/none modes scale down from this
+  CalendarTabConfig calendarTab;
   bool operator==(const ControlCenterConfig&) const = default;
 };
 

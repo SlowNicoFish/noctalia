@@ -18,6 +18,8 @@
 #include "dbus/logind/logind_service.h"
 #include "dbus/mpris/mpris_service.h"
 #include "dbus/network/inetwork_service.h"
+#include "dbus/network/iwd_secret_agent.h"
+#include "dbus/network/iwd_service.h"
 #include "dbus/network/network_manager_service.h"
 #include "dbus/network/network_secret_agent.h"
 #include "dbus/network/wpa_supplicant_service.h"
@@ -545,6 +547,31 @@ void Application::initStyleThemeAndWayland() {
   });
 }
 
+void Application::reconcileOutputSurfaces() {
+  // Canonical bottom-to-top (re)creation order for per-output layer surfaces.
+  // This is the ONLY place this order is defined: it runs once after initUi()
+  // wiring for first creation and again on every output change, so same-layer
+  // stacking (e.g. screen corners above the dock) is identical in both cases.
+  // Each owner's onOutputChange() reconciles idempotently against the current
+  // output set, so re-running it is safe. initialize() only wires dependencies.
+  m_backdrop.onOutputChange();
+  m_wallpaper.onOutputChange();
+  m_bar.onOutputChange();
+  m_dock.onOutputChange();
+  m_desktopWidgetsController.onOutputChange();
+  m_lockscreenWidgetsController.onOutputChange();
+  m_screenCorners.onOutputChange();
+  m_hotCorners.onOutputChange();
+  m_lockScreen.onOutputChange();
+  m_idleGraceOverlay.onOutputChange();
+  m_idleInhibitor.onOutputChange();
+  m_overviewLauncherCapture.onOutputChange();
+  m_screenshotService.onOutputChange();
+  m_notificationToast.onOutputChange();
+  m_osdOverlay.onOutputChange();
+  m_windowSwitcher.onOutputChange();
+}
+
 void Application::initWaylandCallbacks() {
   auto shouldRefreshControlCenter = [this]() { return m_panelManager.isOpenPanel("control-center"); };
 
@@ -557,28 +584,15 @@ void Application::initWaylandCallbacks() {
     }
     m_gammaService.onOutputsChanged();
     m_pluginServiceHost.onOutputChange();
-    m_wallpaper.onOutputChange();
-    m_backdrop.onOutputChange();
-    m_bar.onOutputChange();
-    m_dock.onOutputChange();
-    m_desktopWidgetsController.onOutputChange();
-    m_lockscreenWidgetsController.onOutputChange();
-    m_screenCorners.onOutputChange();
-    m_hotCorners.onOutputChange();
-    m_lockScreen.onOutputChange();
-    m_idleGraceOverlay.onOutputChange();
-    m_idleInhibitor.onOutputChange();
-    m_overviewLauncherCapture.onOutputChange();
-    m_screenshotService.onOutputChange();
-    m_notificationToast.onOutputChange();
-    m_osdOverlay.onOutputChange();
-    m_windowSwitcher.onOutputChange();
+    reconcileOutputSurfaces();
   });
   m_clipboardService.setChangeCallback([this]() {
+    m_scriptApi.setClipboardText(m_clipboardService.clipboardText());
     if (m_panelManager.isOpenPanel("clipboard")) {
       m_panelManager.refresh();
     }
   });
+  m_scriptApi.setClipboardText(m_clipboardService.clipboardText());
   m_compositorPlatform.setWorkspaceAlertService(&m_workspaceAlertService);
   m_compositorPlatform.setWorkspaceChangeCallback([this]() {
     // Clear alerts for the workspace the user just switched to. Limit to the
@@ -698,6 +712,26 @@ void Application::initAuxServicesAndHooks() {
     } else {
       for (const auto& change : wallpaperChanges) {
         fireWallpaperChangedHook(change.path, change.connector);
+      }
+    }
+    if (compositors::isKde()) {
+      const auto applyKdeWallpaper = [](const std::string& path, const std::string& connector) {
+        if (path.empty()) {
+          return;
+        }
+        std::string cmd = "plasma-apply-wallpaperimage";
+        if (!connector.empty()) {
+          cmd += " --screen " + connector;
+        }
+        cmd += " \"" + path + "\"";
+        (void)process::runAsync(cmd);
+      };
+      if (wallpaperChanges.empty()) {
+        applyKdeWallpaper(m_configService.getPaletteWallpaperPath(), {});
+      } else {
+        for (const auto& change : wallpaperChanges) {
+          applyKdeWallpaper(change.path, change.connector);
+        }
       }
     }
   });
@@ -901,8 +935,26 @@ void Application::initSystemBusServices() {
         }
         kLog.info("network service active (wpa_supplicant)");
       } catch (const std::exception& e2) {
-        kLog.warn("network service disabled: {}", e2.what());
-        m_networkService.reset();
+        kLog.warn("wpa_supplicant unavailable ({}), trying iwd", e2.what());
+        try {
+          m_networkService = std::make_unique<IwdService>(*m_systemBus);
+          m_networkService->setChangeCallback(
+              [this, shouldRefreshControlCenter](const NetworkState& state, NetworkChangeOrigin origin) {
+                onNetworkStateChangedForEvents(state, origin);
+                m_bar.refresh();
+                if (shouldRefreshControlCenter()) {
+                  m_panelManager.refresh();
+                }
+              }
+          );
+          if (m_networkService->hasStateSnapshot()) {
+            m_prevWirelessEnabledForEvents = m_networkService->state().wirelessEnabled;
+          }
+          kLog.info("network service active (iwd)");
+        } catch (const std::exception& e3) {
+          kLog.warn("network service disabled: {}", e3.what());
+          m_networkService.reset();
+        }
       }
     }
 
@@ -912,6 +964,17 @@ void Application::initSystemBusServices() {
       } catch (const std::exception& e) {
         kLog.warn("network secret agent disabled: {}", e.what());
         m_networkSecretAgent.reset();
+      }
+    }
+
+    // Initialize iwd secret agent if iwd is the active network service
+    if (auto* iwdService = dynamic_cast<IwdService*>(m_networkService.get())) {
+      try {
+        m_iwdSecretAgent = std::make_unique<IwdSecretAgent>(*m_systemBus);
+        iwdService->setSecretAgent(m_iwdSecretAgent.get());
+      } catch (const std::exception& e) {
+        kLog.warn("iwd secret agent disabled: {}", e.what());
+        m_iwdSecretAgent.reset();
       }
     }
 

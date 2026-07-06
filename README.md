@@ -10,7 +10,7 @@ built directly on Wayland and OpenGL ES with no Qt or GTK dependency, so the UI,
 are designed as one cohesive shell instead of a collection of unrelated panels and scripts.
 
 > [!IMPORTANT]
-> Noctalia v5 is in early/alpha development. Expect breaking configuration and behavior changes while the project is still taking shape.
+> Noctalia v5 is currently in Beta. While the core features and architecture are stabilizing, you may still encounter occasional configuration or behavior adjustments as we prepare for the final release.
 
 <p><br/></p>
 
@@ -179,10 +179,11 @@ sudo xbps-install meson ninja pkg-config git \
 ```
 
 Vendored dependencies, with no system package needed: `Wuffs`,
-`nlohmann/json`, `Luau`, `dr_wav`, `fzy`, `stb_image_resize2`, and Material Color Utilities.
+`Luau`, `dr_wav`, `fzy`, and Material Color Utilities.
 
-Dependencies that are vendored by default, with a meson option to instead use the system package: `md4c`,
-`tomlplusplus`
+Dependencies that are vendored by default, with a meson boolean to instead use the system package: `md4c`,
+`tomlplusplus`, `nlohmann/json`. `stb` is also vendored by default, but since it ships no pkg-config file it is switched by pointing
+`-Dstb_headers=<path>` at system headers (e.g. `-Dstb_headers=/usr/include/stb`) rather than a boolean toggle.
 
 System packages required beyond the Wayland/GL stack: `libwebp` handles WebP decoding and thumbnail encoding. Wuffs
 handles the other supported raster image formats. `libqalculate` powers the launcher calculator (arithmetic, unit and

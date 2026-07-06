@@ -107,6 +107,7 @@ class BrightnessService;
 class DebugService;
 class EasyEffectsService;
 class INetworkService;
+class IwdSecretAgent;
 class LogindService;
 class MainLoop;
 class MprisService;
@@ -171,6 +172,10 @@ private:
   void initNotificationAndOsd();
   void initBarDockAndLayout();
   void initWidgetControllersAndCallbacks();
+  // Single source of truth for surface (re)creation order: (re)builds every
+  // per-output layer surface bottom-to-top. Called once after initUi() wiring
+  // and on every output change so first-run stacking matches hot reload.
+  void reconcileOutputSurfaces();
   void initIpc();
   // (Re)register plugin-backed launcher providers from the enabled plugin set.
   void reloadPluginLauncherProviders();
@@ -242,6 +247,7 @@ private:
   std::unique_ptr<PowerProfilesService> m_powerProfilesService;
   std::unique_ptr<INetworkService> m_networkService;
   std::unique_ptr<NetworkSecretAgent> m_networkSecretAgent;
+  std::unique_ptr<IwdSecretAgent> m_iwdSecretAgent;
   std::unique_ptr<BluetoothService> m_bluetoothService;
   std::unique_ptr<BluetoothAgent> m_bluetoothAgent;
   Timer m_bluetoothResumeTimer;

@@ -212,7 +212,8 @@
       "all-day": "All day",
       "events": "Events",
       "no-events": "No events.",
-      "today": "Today"
+      "today": "Today",
+      "toggle-events-card": "Toggle events card"
     },
     "display": {
       "disabled": "Disabled",
@@ -250,13 +251,14 @@
     "network": {
       "connect": "Connect",
       "current-connection": "Current Connection",
+      "external-ip": "WAN {ip}",
       "no-networks": "No networks in range",
       "not-connected": "Not connected",
       "password": "Password",
       "password-prompt": "Enter password",
       "password-prompt-for": "Enter password for {ssid}",
-      "unavailable-detail": "Install and enable NetworkManager to manage networks from here.",
-      "unavailable-title": "NetworkManager unavailable",
+      "unavailable-detail": "Install and enable NetworkManager, wpa_supplicant, or iwd to manage networks from here.",
+      "unavailable-title": "Network service unavailable",
       "vpns": "VPNs",
       "wi-fi": "Wi-Fi",
       "wifi": "Wi-Fi",
@@ -815,6 +817,7 @@
     "badges": {
       "advanced": "Advanced",
       "community": "Community",
+      "deprecated": "Deprecated",
       "inherited": "Inherited",
       "monitor": "Monitor",
       "official": "Official",
@@ -914,6 +917,8 @@
           "fill-description": "Capsule background color role; fixed hex colors are also supported",
           "foreground": "Foreground",
           "foreground-description": "Icon and label color role for widgets in this group",
+          "hide": "Hide this group",
+          "hide-widget": "Hide this widget",
           "hint": "Part of a capsule group",
           "members": "{count} widgets",
           "opacity": "Opacity",
@@ -924,6 +929,8 @@
           "radius": "Radius",
           "radius-description": "Capsule corner radius in pixels; Auto inherits the bar's capsule radius",
           "selected": "{count} selected",
+          "show": "Show this group",
+          "show-widget": "Show this widget",
           "style": "Style",
           "title": "Capsule group",
           "ungroup": "Ungroup"
@@ -1043,6 +1050,7 @@
     "navigation": {
       "groups": {
         "audio": "Audio",
+        "authentication": "Authentication",
         "automation": "Automation",
         "backdrop": "Backdrop",
         "background": "Background",
@@ -1062,6 +1070,7 @@
         "focus-styling": "Focus Styling",
         "formats": "Formats",
         "general": "General",
+        "greeter": "Greeter",
         "grouping": "Grouping",
         "home": "Home",
         "hot-corners": "Hot Corners",
@@ -1088,7 +1097,7 @@
         "pinned-apps": "Pinned Apps",
         "polkit": "Polkit",
         "power": "Power",
-        "privacy-security": "Privacy & Security",
+        "privacy": "Privacy",
         "profile": "Profile",
         "screen-corners": "Screen Corners",
         "screen-time": "Screen Time",
@@ -1115,6 +1124,7 @@
         "dock": "Dock",
         "hooks": "Hooks",
         "keybinds": "Keybinds",
+        "launcher": "Launcher",
         "location": "Location",
         "niri": "Niri",
         "notifications": "Notifications",
@@ -1319,6 +1329,9 @@
       },
       "plugins": {
         "configure": "Configure",
+        "delete": "Delete",
+        "delete-confirm-desc": "This plugin will be uninstalled and removed from disk.",
+        "delete-confirm-title": "Delete \"{name}\"?",
         "deprecated": "deprecated",
         "empty": "No enabled plugins.",
         "loading": "Loading plugins...",
@@ -1519,19 +1532,19 @@
           "label": "Content Scale"
         },
         "corner-bottom-left": {
-          "description": "Bottom left corner radius for the bar; negative values carve a concave corner when this corner faces away from the screen edge"
+          "description": "Bottom left corner radius for the bar. Enable invert to carve a concave corner, available only when this corner faces away from the screen edge"
         },
         "corner-bottom-right": {
-          "description": "Bottom right corner radius for the bar; negative values carve a concave corner when this corner faces away from the screen edge"
+          "description": "Bottom right corner radius for the bar. Enable invert to carve a concave corner, available only when this corner faces away from the screen edge"
         },
         "corner-radius": {
           "description": "Corner radius of the bar"
         },
         "corner-top-left": {
-          "description": "Top left corner radius for the bar; negative values carve a concave corner when this corner faces away from the screen edge"
+          "description": "Top left corner radius for the bar. Enable invert to carve a concave corner, available only when this corner faces away from the screen edge"
         },
         "corner-top-right": {
-          "description": "Top right corner radius for the bar; negative values carve a concave corner when this corner faces away from the screen edge"
+          "description": "Top right corner radius for the bar. Enable invert to carve a concave corner, available only when this corner faces away from the screen edge"
         },
         "dead-zone-command": {
           "description": "Shell command to run on left-click in the bar margin outside widget sections",
@@ -1573,6 +1586,10 @@
         "font-weight": {
           "description": "Default weight for widget labels on this bar.",
           "label": "Font Weight"
+        },
+        "hover-highlight": {
+          "description": "Softly tint the widget under the mouse pointer with its own foreground color",
+          "label": "Hover Highlight"
         },
         "layer": {
           "description": "Use Overlay to show the bar above fullscreen apps. Attached panels follow the bar.",
@@ -1697,6 +1714,10 @@
         "background-opacity": {
           "description": "Background opacity of the dock"
         },
+        "concave-edge-corners": {
+          "description": "Carve inward corners on the side that touches the screen edge; requires the margin to the screen edge to be 0",
+          "label": "Concave Edge Corners"
+        },
         "corner-bottom-left": {
           "description": "Bottom left corner radius for the dock"
         },
@@ -1766,7 +1787,7 @@
           "label": "Magnification Scale"
         },
         "main-axis-padding": {
-          "description": "Inner padding along the dock's main axis (between icons and the short ends of the capsule)"
+          "description": "Inner padding at the ends of the icon row (before the first and after the last icon)"
         },
         "monitors": {
           "description": "Choose which monitors show the dock (leave empty for all); active-monitor filtering applies within these monitors",
@@ -2162,6 +2183,14 @@
         "session-actions": {
           "description": "Power menu entries, order, custom commands, and icons",
           "label": "Entries"
+        },
+        "session-grid": {
+          "description": "Display session panel actions in a grid layout",
+          "label": "Grid Layout"
+        },
+        "session-grid-columns": {
+          "description": "Number of columns for the grid layout",
+          "label": "Columns"
         }
       },
       "services": {
@@ -2410,6 +2439,10 @@
           "description": "Default date format for shell UI without its own setting",
           "label": "Date Format"
         },
+        "external-ip": {
+          "description": "Resolve the connection's public WAN IP (via api.noctalia.dev) and show it in the Control Center network tab",
+          "label": "Show WAN IP"
+        },
         "greeter-sync-auto": {
           "description": "Automatically sync the greeter whenever wallpaper, colors, or theme mode change",
           "label": "Auto-Sync Greeter"
@@ -2542,6 +2575,10 @@
         "privacy-mic-filter-regex": {
           "description": "Regex for microphone apps to ignore in privacy indicators and OSDs",
           "label": "Microphone Filter Regex"
+        },
+        "privacy-screen-filter-regex": {
+          "description": "Regex for screen-sharing apps to ignore in privacy indicators and OSDs",
+          "label": "Screen Sharing Filter Regex"
         },
         "screen-time-enabled": {
           "description": "Track per-app usage and show it in Control Center",
@@ -2915,6 +2952,10 @@
         "drawer-columns": {
           "description": "Number of tray icons per row in the drawer panel",
           "label": "Drawer Columns"
+        },
+        "drawer-item-size": {
+          "description": "Size of tray icons inside the drawer panel in pixels",
+          "label": "Drawer Icon Size"
         },
         "empty-color": {
           "description": "Color role used for empty workspaces; fixed hex colors are also supported",

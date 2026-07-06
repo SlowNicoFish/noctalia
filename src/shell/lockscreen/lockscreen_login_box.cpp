@@ -188,9 +188,10 @@ namespace lockscreen_login_box {
 
   LoginBoxStyle resolveStyle(const std::unordered_map<std::string, WidgetSettingValue>& settings) {
     LoginBoxStyle style;
+    style.panelOpacity = std::clamp(readFloat(settings, "background_opacity", style.panelOpacity), 0.0f, 1.0f);
     ColorSpec panelFill =
         colorSpecFromConfigString(readString(settings, "background_color", "surface_variant"), "background_color");
-    panelFill.alpha *= std::clamp(readFloat(settings, "background_opacity", 0.88f), 0.0f, 1.0f);
+    panelFill.alpha *= style.panelOpacity;
     style.panelFill = panelFill;
     style.panelRadius = std::clamp(readFloat(settings, "background_radius", style.panelRadius), 0.0f, 32.0f);
     style.inputOpacity = std::clamp(readFloat(settings, kInputOpacityKey, style.inputOpacity), 0.0f, 1.0f);
@@ -262,7 +263,6 @@ namespace lockscreen_login_box {
         continue;
       }
       widget.rotationRad = 0.0f;
-      widget.enabled = true;
       widget.type = std::string(kWidgetType);
       normalizeSettings(widget.settings);
       const float screenWidth = screenWidthForOutput(wayland, widget.outputName);
@@ -271,6 +271,7 @@ namespace lockscreen_login_box {
       } else {
         clampPanelSize(screenWidth, widget.boxWidth, widget.boxHeight);
       }
+      desktop_widgets::clampStateToOutput(wayland, widget, widget.boxWidth, widget.boxHeight);
     }
 
     for (const auto& output : wayland.outputs()) {
@@ -295,6 +296,22 @@ namespace lockscreen_login_box {
       applyDefaultSettings(widget.settings, desktop_settings::DesktopWidgetSettingsScope::Background);
       widgets.insert(widgets.begin(), std::move(widget));
       outputsWithLoginBox.insert(outputKey);
+    }
+
+    bool anyEnabled = false;
+    for (const auto& widget : widgets) {
+      if (isLoginBoxWidget(widget) && widget.enabled) {
+        anyEnabled = true;
+        break;
+      }
+    }
+    if (!anyEnabled) {
+      for (auto& widget : widgets) {
+        if (isLoginBoxWidget(widget)) {
+          widget.enabled = true;
+          break;
+        }
+      }
     }
   }
 
