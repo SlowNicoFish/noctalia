@@ -1155,11 +1155,11 @@ struct LocationConfig {
   //   auto_locate (IP) -> address (geocoded) -> manual latitude/longitude.
   // When enableCustomScheduling is true, explicit sunset/sunrise times override coordinates.
   // Consumed by the weather service, night light, and theme auto mode.
-  bool autoLocate = false;    // resolve coordinates from IP geolocation
-  std::string address;        // geocoded when auto_locate is off and this is non-empty
+  bool autoLocate = false;             // resolve coordinates from IP geolocation
+  std::string address;                 // geocoded when auto_locate is off and this is non-empty
   bool enableCustomScheduling = false; // when true, use sunset/sunrise times instead of coordinates
-  std::string sunset;         // HH:MM night start, used only when enableCustomScheduling is true
-  std::string sunrise;        // HH:MM day start, used only when enableCustomScheduling is true
+  std::string sunset;                  // HH:MM night start, used only when enableCustomScheduling is true
+  std::string sunrise;                 // HH:MM day start, used only when enableCustomScheduling is true
   std::optional<double> latitude;
   std::optional<double> longitude;
 
