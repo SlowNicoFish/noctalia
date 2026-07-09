@@ -320,8 +320,10 @@ void Application::initLockScreenAndSession() {
         m_hookManager.fire(HookKind::SessionLocked);
       },
       [this]() {
+        m_idleGraceOverlay.hide();
         m_lockscreenWidgetsController.onLockStateChanged();
         m_hookManager.fire(HookKind::SessionUnlocked);
+        requestAllSurfacesRedraw();
         if (m_logindService != nullptr) {
           m_logindService->syncSessionUnlocked();
         }
@@ -653,7 +655,7 @@ void Application::initNotificationAndOsd() {
   m_configService.setNotificationManager(&m_notificationManager);
   m_notificationManager.setSoundPlayer(m_soundPlayer.get());
 
-  TooltipManager::instance().initialize(m_wayland, &m_renderContext);
+  TooltipManager::instance().initialize(m_wayland, &m_configService, &m_renderContext);
   m_osdOverlay.initialize(m_wayland, &m_configService, &m_renderContext);
   m_windowSwitcher.initialize(
       m_wayland, &m_renderContext, m_compositorPlatform, &m_configService, &m_asyncTextureCache

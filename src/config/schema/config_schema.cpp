@@ -208,10 +208,12 @@ namespace noctalia::config::schema {
             [](toml::table&, const NotificationFilterConfig&) {}
         ),
         field(&NotificationFilterConfig::match, "match"),
+        field(&NotificationFilterConfig::matchContent, "match_content"),
         field(&NotificationFilterConfig::showToast, "show_toast"),
         field(&NotificationFilterConfig::saveHistory, "save_history"),
         field(&NotificationFilterConfig::playSound, "play_sound"),
         field(&NotificationFilterConfig::allowPermanent, "allow_permanent"),
+        field(&NotificationFilterConfig::overrideDuration, "override_duration"),
         field(&NotificationFilterConfig::allowedUrgencies, "allowed_urgencies"),
         custom<NotificationFilterConfig>(
             "allow_critical", [](const toml::table&, NotificationFilterConfig&, std::string_view, Diagnostics&) {},
@@ -1181,6 +1183,7 @@ namespace noctalia::config::schema {
           dmenuOptionalString(&DmenuEntryConfig::label, "label"),
           dmenuOptionalString(&DmenuEntryConfig::glyph, "glyph"),
           field(&DmenuEntryConfig::global, "global"),
+          field(&DmenuEntryConfig::freeform, "freeform"),
       };
       return s;
     }
@@ -1677,10 +1680,7 @@ namespace noctalia::config::schema {
     // optional BarMonitorOverride fields — declared once so the two schemas can't
     // drift apart.
     constexpr Range<std::int64_t> kBarThicknessRange{10, 300};
-    // Negative corner radius marks a concave corner of magnitude |value|; positive
-    // is the usual convex rounding. Only the two corners on the bar's inner edge
-    // (away from the screen) render a concave spike.
-    constexpr Range<std::int64_t> kBarRadiusRange{-500, 500};
+    constexpr Range<std::int64_t> kBarRadiusRange{0, 500};
     constexpr Range<std::int64_t> kBarPanelOverlapRange{-2, 3};
     constexpr Range<float> kBarCapsuleThicknessRange{0.1f, 1.0f};
     constexpr Range<float> kBarOpacityRange{0.0f, 1.0f};
@@ -2012,6 +2012,7 @@ namespace noctalia::config::schema {
         field(&BarConfig::radiusTopRight, "radius_top_right", kBarRadiusRange),
         field(&BarConfig::radiusBottomLeft, "radius_bottom_left", kBarRadiusRange),
         field(&BarConfig::radiusBottomRight, "radius_bottom_right", kBarRadiusRange),
+        field(&BarConfig::concaveEdgeCorners, "concave_edge_corners"),
         field(&BarConfig::marginEnds, "margin_ends"),
         field(&BarConfig::marginEdge, "margin_edge"),
         field(&BarConfig::marginOppositeEdge, "margin_opposite_edge"),
@@ -2081,6 +2082,7 @@ namespace noctalia::config::schema {
         optionalIntField(&BarMonitorOverride::radiusTopRight, "radius_top_right", kBarRadiusRange),
         optionalIntField(&BarMonitorOverride::radiusBottomLeft, "radius_bottom_left", kBarRadiusRange),
         optionalIntField(&BarMonitorOverride::radiusBottomRight, "radius_bottom_right", kBarRadiusRange),
+        optionalBoolField(&BarMonitorOverride::concaveEdgeCorners, "concave_edge_corners"),
         optionalIntField(&BarMonitorOverride::marginEnds, "margin_ends"),
         optionalIntField(&BarMonitorOverride::marginEdge, "margin_edge"),
         optionalIntField(&BarMonitorOverride::marginOppositeEdge, "margin_opposite_edge"),

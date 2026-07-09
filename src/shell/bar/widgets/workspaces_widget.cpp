@@ -84,6 +84,7 @@ void WorkspacesWidget::create() {
     // as moving to the next workspace and negative as previous.
     activateAdjacentWorkspace(delta > 0.0f ? 1 : -1);
   });
+  container->setClipChildren(true);
   m_container = container.get();
   setRoot(std::move(container));
 }
@@ -335,7 +336,7 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
               .fontWeight = workspaceFontWeight(configuredFontWeight, m_minimal, ws.active),
               .fontFamily = labelFontFamily(),
               .color = workspaceTextColor(ws),
-              .baselineMode = LabelBaselineMode::StableLogical,
+              .baselineMode = LabelBaselineMode::Text,
           })
       ));
       item.text->measure(renderer);
@@ -347,6 +348,58 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
         m_platform.activateWorkspace(m_output, wsCopy);
       }
     });
+
+    std::size_t index = i;
+    area->setOnEnter([this, index](const InputArea::PointerData&) {
+      m_hoveredIndex = index;
+      if (m_animations == nullptr)
+        return;
+      m_animations->cancelForOwner(&m_hoverProgress);
+      const ColorSpec fill = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface));
+      m_animations->animate(
+          m_hoverProgress, 1.0f, Style::animFast, Easing::EaseOutCubic,
+          [this, fill](float p) {
+            m_hoverProgress = p;
+            if (m_hoverOverlay != nullptr) {
+              m_hoverOverlay->setVisible(p > 0.001f);
+              ColorSpec c = fill;
+              c.alpha = 0.1f * p;
+              m_hoverOverlay->setFill(c);
+            }
+            updateHoverOverlay();
+            requestRedraw();
+          },
+          {}, &m_hoverProgress
+      );
+      requestFrameTick();
+    });
+
+    area->setOnLeave([this, index]() {
+      if (m_hoveredIndex == index) {
+        m_hoveredIndex = SIZE_MAX;
+        updateHoverOverlay();
+      }
+      if (m_animations == nullptr)
+        return;
+      m_animations->cancelForOwner(&m_hoverProgress);
+      const ColorSpec fill = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface));
+      m_animations->animate(
+          m_hoverProgress, 0.0f, Style::animFast, Easing::EaseOutCubic,
+          [this, fill](float p) {
+            m_hoverProgress = p;
+            if (m_hoverOverlay != nullptr) {
+              m_hoverOverlay->setVisible(p > 0.001f);
+              ColorSpec c = fill;
+              c.alpha = 0.1f * p;
+              m_hoverOverlay->setFill(c);
+            }
+            requestRedraw();
+          },
+          {}, &m_hoverProgress
+      );
+      requestFrameTick();
+    });
+
     item.area = static_cast<InputArea*>(m_container->addChild(std::move(area)));
     m_items.push_back(item);
   }
@@ -377,6 +430,19 @@ void WorkspacesWidget::rebuild(Renderer& renderer) {
   } else {
     m_container->setFrameSize(total, m_indicatorHeight);
   }
+
+  ColorSpec hoverFill = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface));
+  hoverFill.alpha = 0.0f;
+  m_hoverOverlay = static_cast<Box*>(m_container->addChild(
+      ui::box({
+          .fill = hoverFill,
+          .visible = false,
+          .configure = [](Box& box) {
+            box.setParticipatesInLayout(false);
+            box.setHitTestVisible(false);
+          },
+      })
+  ));
 }
 
 void WorkspacesWidget::computeTargets() {
@@ -404,6 +470,17 @@ void WorkspacesWidget::updateContainerSize() {
       total = std::max(total, item.currentX + item.currentWidth);
     }
   }
+
+  if (m_animId != 0) {
+    float targetTotal = 0.0f;
+    for (const auto& item : m_items) {
+      if (item.targetWidth > 0.0f) {
+        targetTotal = std::max(targetTotal, item.targetX + item.targetWidth);
+      }
+    }
+    total = targetTotal;
+  }
+
   if (total <= 0.0f) {
     if (m_isVertical) {
       m_container->setFrameSize(m_indicatorHeight, 0.0f);
@@ -442,7 +519,7 @@ void WorkspacesWidget::ensureItemLabel(Renderer& renderer, std::size_t index) {
           .fontWeight = workspaceFontWeight(labelFontWeight(), m_minimal, workspace.active),
           .fontFamily = labelFontFamily(),
           .color = workspaceTextColor(workspace),
-          .baselineMode = LabelBaselineMode::StableLogical,
+          .baselineMode = LabelBaselineMode::Text,
       })
   ));
   item.text->measure(renderer);
@@ -589,6 +666,10 @@ void WorkspacesWidget::startAnimation() {
       },
       [this]() { m_animId = 0; }, this
   );
+
+  // Reserve final bounds before the first animated frame to avoid one-frame overflow.
+  updateContainerSize();
+
   if (root() != nullptr) {
     root()->markPaintDirty();
   }
@@ -623,6 +704,9 @@ void WorkspacesWidget::applyItemLayout(std::size_t i) {
       it.indicator->setFrameSize(it.currentWidth, m_indicatorHeight);
     }
   }
+  if (m_hoveredIndex == i) {
+    updateHoverOverlay();
+  }
   if (it.text != nullptr) {
     it.text->setVisible(it.showLabel);
     if (it.showLabel) {
@@ -640,6 +724,64 @@ void WorkspacesWidget::applyItemLayout(std::size_t i) {
     const float itemH = m_isVertical ? it.currentWidth : m_indicatorHeight;
     it.indicator->setFrameSize(itemW, itemH);
     it.indicator->setRadius(workspacePillRadius(itemW, itemH));
+  }
+}
+
+void WorkspacesWidget::updateHoverOverlay() {
+  if (m_hoveredIndex >= m_items.size()) {
+    // Restore all items to original color
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
+      auto& it = m_items[i];
+      if (it.indicator != nullptr) {
+        it.indicator->setFill(workspaceFillColor(m_cachedState[i]));
+      }
+      if (it.text != nullptr) {
+        it.text->setColor(workspaceTextColor(m_cachedState[i]));
+      }
+    }
+    return;
+  }
+
+  const auto& it = m_items[m_hoveredIndex];
+
+  if (!m_minimal) {
+    if (m_hoverOverlay != nullptr) {
+      m_hoverOverlay->setVisible(false);
+    }
+    for (std::size_t i = 0; i < m_items.size(); ++i) {
+      auto& currIt = m_items[i];
+      if (currIt.indicator != nullptr) {
+        if (i == m_hoveredIndex) {
+          currIt.indicator->setFill(colorSpecFromRole(ColorRole::Hover));
+        } else {
+          currIt.indicator->setFill(workspaceFillColor(m_cachedState[i]));
+        }
+      }
+      if (currIt.text != nullptr) {
+        if (i == m_hoveredIndex) {
+          currIt.text->setColor(colorSpecFromRole(ColorRole::OnHover));
+        } else {
+          currIt.text->setColor(workspaceTextColor(m_cachedState[i]));
+        }
+      }
+    }
+    return;
+  }
+
+  // Minimal mode uses the translucent overlay
+  if (m_hoverOverlay == nullptr)
+    return;
+  const float w = it.currentWidth;
+  const float indicatorW = m_isVertical ? m_indicatorHeight : w;
+  const float indicatorH = m_isVertical ? w : m_indicatorHeight;
+
+  m_hoverOverlay->setRadius(workspacePillRadius(indicatorW, indicatorH));
+  if (m_isVertical) {
+    m_hoverOverlay->setPosition(0.0f, std::round(it.currentX));
+    m_hoverOverlay->setFrameSize(m_indicatorHeight, w);
+  } else {
+    m_hoverOverlay->setPosition(std::round(it.currentX), 0.0f);
+    m_hoverOverlay->setFrameSize(w, m_indicatorHeight);
   }
 }
 

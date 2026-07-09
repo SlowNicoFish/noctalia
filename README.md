@@ -105,6 +105,8 @@ sudo pacman -S meson gcc just \
   sdbus-cpp libpipewire wireplumber polkit \
   pam curl libwebp librsvg \
   libqalculate libxml2 \
+  md4c tomlplusplus \
+  nlohmann-json stb \
   jemalloc
 ```
 
@@ -119,10 +121,12 @@ sudo dnf install meson gcc-c++ just \
   sdbus-cpp-devel pipewire-devel wireplumber-devel \
   pam-devel polkit-devel libcurl-devel libwebp-devel librsvg2-devel \
   libqalculate-devel libxml2-devel \
+  md4c-devel tomlplusplus-devel \
+  json-devel stb_image_resize2-devel stb_image_write-devel \
   jemalloc-devel
 ```
 
-### openSUSE (Tumbleweed & Slowroll)
+### openSUSE Tumbleweed / Slowroll
 ```sh
 sudo zypper install meson gcc-c++ just \
   wayland-devel wayland-protocols-devel \
@@ -133,6 +137,8 @@ sudo zypper install meson gcc-c++ just \
   sdbus-cpp-devel pipewire-devel wireplumber-devel \
   pam-devel polkit-devel libcurl-devel libwebp-devel librsvg-devel \
   libqalculate-devel libxml2-devel \
+  md4c-devel tomlplusplus-devel \
+  nlohmann_json-devel stb-devel \
   jemalloc-devel
 ```
 
@@ -148,22 +154,9 @@ sudo apt install meson g++ just \
   libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev \
   libcurl4-openssl-dev libwebp-dev librsvg2-dev \
   libqalculate-dev libxml2-dev \
+  libmd4c-dev libtomlplusplus-dev \
+  nlohmann-json3-dev libstb-dev \
   libjemalloc-dev
-```
-
-### AerynOS
-```sh
-sudo moss it meson build-essential \
-  wayland-devel wayland-protocols-devel \
-  mesa-libegl-devel mesa-libgl-devel \
-  freetype-devel fontconfig-devel \
-  cairo-devel pango-devel harfbuzz-devel \
-  libxkbcommon-devel glib2-devel \
-  sdbus-cpp-devel pipewire-devel wireplumber-devel \
-  linux-pam-devel polkit-devel \
-  curl-devel libwebp-devel librsvg-devel \
-  libqalculate-devel libxml2-devel \
-  extra-cmake-modules jemalloc-devel
 ```
 
 ### Void Linux
@@ -175,15 +168,13 @@ sudo xbps-install meson ninja pkg-config git \
   harfbuzz-devel libxkbcommon-devel pipewire-devel wireplumber-devel \
   libcurl-devel pam-devel libwebp-devel \
   basu-devel sdbus-c++-devel \
+  libmd4c-devel tomlplusplus-devel \
+  nlohmann-json-devel stb \
   polkit-devel librsvg-devel libqalculate-devel libxml2-devel jemalloc-devel
 ```
 
 Vendored dependencies, with no system package needed: `Wuffs`,
 `Luau`, `dr_wav`, `fzy`, and Material Color Utilities.
-
-Dependencies that are vendored by default, with a meson boolean to instead use the system package: `md4c`,
-`tomlplusplus`, `nlohmann/json`. `stb` is also vendored by default, but since it ships no pkg-config file it is switched by pointing
-`-Dstb_headers=<path>` at system headers (e.g. `-Dstb_headers=/usr/include/stb`) rather than a boolean toggle.
 
 System packages required beyond the Wayland/GL stack: `libwebp` handles WebP decoding and thumbnail encoding. Wuffs
 handles the other supported raster image formats. `libqalculate` powers the launcher calculator (arithmetic, unit and
@@ -192,6 +183,16 @@ currency conversion).
 Polkit agent support requires development files that provide the `polkit-agent-1` and `polkit-gobject-1` pkg-config
 modules. Some distros ship these in the runtime `polkit` package, while split-package distros use names such as
 `polkit-devel`, `polkit-dev`, or `libpolkit-agent-1-dev` / `libpolkit-gobject-1-dev`.
+
+Pipewire libraries/headers are sufficient to build Noctalia, but there is also a runtime requirement for the pipewire
+daemon.  Noctalia will abort startup if it can't connect to the daemon.  If your distro splits the pipewire libraries
+and daemon into separate packages, make sure you have both installed.
+
+`upower` is an optional dependency used for battery and power device integration.
+
+`ddcutil` is an optional dependency used for controlling monitor brightness.
+
+`wtype` is an optional dependency used for clipboard auto-paste.
 
 `jemalloc` is recommended but optional. It reduces memory fragmentation in long-running sessions, and on glibc systems
 it is used automatically when detected. Use Meson's `-Djemalloc=enabled` or `-Djemalloc=disabled` option to require or

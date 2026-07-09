@@ -25,6 +25,21 @@ endif
 # pipewire_lsan.cpp is only needed when address sanitizer is active.
 sanitize = get_option('b_sanitize') != 'none'
 
+# Hardened standard-library assertions in debug builds only. A std::clamp(v, lo, hi)
+# with hi < lo aborts here (distro packagers enable this in release, so users see
+# the same abort) — surfacing inverted-bound bugs loudly during development so they
+# can be routed through util::clampOrdered. Release stays unhardened on purpose: a
+# not-yet-converted raw std::clamp there should degrade to a wrong-but-non-fatal
+# value rather than abort a user's session (converted sites log and return lo via
+# clampOrdered). The cost is a few precondition branches (not the heavy _GLIBCXX_DEBUG).
+if get_option('buildtype') != 'release'
+  if is_libcxx
+    add_project_arguments('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE', language: 'cpp')
+  else
+    add_project_arguments('-D_GLIBCXX_ASSERTIONS', language: 'cpp')
+  endif
+endif
+
 # Tests build by default only for unsanitized debug builds; all other build
 # types skip them unless explicitly enabled (-Dtests=enabled).
 tests_opt = get_option('tests')
@@ -72,6 +87,9 @@ wireplumber_dep     = dependency('wireplumber-0.5', include_type: 'system')
 curl_dep            = dependency('libcurl')
 libqalculate_dep    = dependency('libqalculate')
 libxml2_dep         = dependency('libxml-2.0')
+md4c_dep            = dependency('md4c')
+nlohmann_dep        = dependency('nlohmann_json')
+tomlplusplus_dep    = dependency('tomlplusplus')
 pam_dep             = cc.find_library('pam')
 dl_dep              = cpp.find_library('dl', required: false)
 
@@ -173,41 +191,12 @@ mcu_dep = declare_dependency(
   include_directories: include_directories('third_party/material_color_utilities', is_system: true),
 )
 
-# ── Vendored: stb_image_resize2 (header-only) ─────────────────────────────────
-stb_dep = declare_dependency(
-  include_directories: include_directories(get_option('stb_headers'), is_system: true),
-)
-
-# ── Vendored: tomlplusplus (header-only) ─────────────────────────────────
-if get_option('system_tomlplusplus')
-  tomlplusplus_dep = dependency('tomlplusplus')
-else
-  tomlplusplus_dep = declare_dependency(
-    include_directories: include_directories('third_party/tomlplusplus', is_system: true),
-  )
+# ── System: stb_image_resize2 and stb_image_write (header-only) ─────────────────────────────────
+if not cc.has_header('stb/stb_image_resize2.h')
+  error('stb/stb_image_resize2.h not found')
 endif
-
-# ── Vendored: nlohmann (header-only) ─────────────────────────────────
-if get_option('system_nlohmann_json')
-  nlohmann_dep = dependency('nlohmann_json')
-else
-  nlohmann_dep = declare_dependency(
-    include_directories: include_directories('third_party/nlohmann', is_system: true),
-  )
-endif
-
-# ── Vendored: md4c (CommonMark parser) ───────────────────────────────────────
-if get_option('system_md4c')
-  md4c_dep = dependency('md4c')
-else
-  _md4c_lib = static_library('md4c',
-    'third_party/md4c/md4c.c',
-    override_options: ['warning_level=0'],
-  )
-  md4c_dep = declare_dependency(
-    link_whole: _md4c_lib,
-    include_directories: include_directories('third_party/md4c', is_system: true),
-  )
+if not cc.has_header('stb/stb_image_write.h')
+  error('stb/stb_image_write.h not found')
 endif
 
 # ── System: libwebp (WebP decode and thumbnail encode) ───────────────────────
@@ -499,6 +488,7 @@ _noctalia_sources = files(
   'src/notification/notification_display_name.cpp',
   'src/notification/notification_history_store.cpp',
   'src/pipewire/pipewire_service.cpp',
+  'src/pipewire/audio_glyphs.cpp',
   'src/pipewire/wireplumber_mixer.cpp',
   'src/pipewire/privacy_filter.cpp',
   'src/pipewire/pipewire_spectrum.cpp',
@@ -543,6 +533,7 @@ _noctalia_sources = files(
   'src/render/scene/graph_node.cpp',
   'src/render/scene/node.cpp',
   'src/render/text/cairo_text_renderer.cpp',
+  'src/render/text/font_registry.cpp',
   'src/render/text/font_weight_catalog.cpp',
   'src/render/text/cairo_glyph_renderer.cpp',
   'src/render/wallpaper_renderer.cpp',
@@ -807,6 +798,7 @@ _noctalia_sources = files(
   'src/ui/split_pane_focus.cpp',
   'src/ui/style.cpp',
   'src/util/checksum.cpp',
+  'src/util/clamp.cpp',
   'src/util/fuzzy_match.cpp',
   'src/wayland/clipboard_service.cpp',
   'src/wayland/text_input_service.cpp',
@@ -846,6 +838,7 @@ _noctalia_sources = files(
   'src/compositors/kde/kwin_workspace_backend.cpp',
   'src/compositors/labwc/labwc_workspace_backend.cpp',
   'src/wayland/layer_surface.cpp',
+  'src/wayland/output_probe.cpp',
   'src/wayland/popup_surface.cpp',
   'src/wayland/subsurface.cpp',
   'src/wayland/surface.cpp',
@@ -941,7 +934,6 @@ noctalia_exe = executable('noctalia',
     mcu_dep,
     nlohmann_dep,
     libxml2_dep,
-    stb_dep,
     tomlplusplus_dep,
     md4c_dep,
     libwebp_dep,
@@ -1083,6 +1075,16 @@ battery_hook_state_test = executable('battery_hook_state_test',
 )
 
 test('battery_hook_state', battery_hook_state_test)
+
+audio_glyphs_test = executable('audio_glyphs_test',
+  sources: files(
+    'tests/audio_glyphs_test.cpp',
+    'src/pipewire/audio_glyphs.cpp',
+  ),
+  include_directories: _noctalia_inc,
+)
+
+test('audio_glyphs', audio_glyphs_test)
 
 hook_manager_test = executable('hook_manager_test',
   sources: files(
@@ -1264,6 +1266,7 @@ ui_tree_reconciler_test = executable('ui_tree_reconciler_test',
     'src/ui/app_icon_colorization.cpp',
     'src/ui/palette.cpp',
     'src/ui/style.cpp',
+    'src/util/clamp.cpp',
     'src/core/timer_manager.cpp',
     'src/core/input/keybind_matcher.cpp',
     'src/core/input/key_chord.cpp',
@@ -1300,7 +1303,6 @@ ui_tree_reconciler_test = executable('ui_tree_reconciler_test',
     librsvg_dep,
     libwebp_dep,
     nlohmann_dep,
-    stb_dep,
     xkbcommon_dep,
   ],
   include_directories: _noctalia_inc,
@@ -1467,7 +1469,6 @@ image_file_loader_data_uri_test = executable('image_file_loader_data_uri_test',
     cairo_dep,
     librsvg_dep,
     libwebp_dep,
-    stb_dep,
   ],
   include_directories: _noctalia_inc,
 )
