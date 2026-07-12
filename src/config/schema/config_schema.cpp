@@ -1119,6 +1119,7 @@ namespace noctalia::config::schema {
         field(&ThemeConfig::customPalette, "custom_palette"),
         field(&ThemeConfig::wallpaperScheme, "wallpaper_scheme"),
         enumField(&ThemeConfig::mode, "mode", kThemeModes),
+        field(&ThemeConfig::pureBlackDark, "pure_black_dark"),
         subTable(&ThemeConfig::templates, "templates", templatesSchema()),
     };
     return s;
@@ -1361,6 +1362,8 @@ namespace noctalia::config::schema {
               &ShellSessionConfig::actions, "actions", sessionActionSchema(),
               [](const SessionPanelActionConfig& a) { return !a.action.empty(); }
           ),
+          field(&ShellSessionConfig::grid, "grid"),
+          field(&ShellSessionConfig::gridColumns, "grid_columns", kSessionGridColumnsRange),
           subTable(&ShellSessionConfig::power, "power", shellSessionPowerSchema()),
       };
       return s;
@@ -1369,7 +1372,6 @@ namespace noctalia::config::schema {
 
   const Schema<ShellConfig>& shellSchema() {
     static const Schema<ShellConfig> s = {
-        field(&ShellConfig::uiScale, "ui_scale", kScaleRange),
         field(&ShellConfig::cornerRadiusScale, "corner_radius_scale", kCornerRadiusScaleRange),
         // font_family is trimmed; empty falls back to sans-serif.
         custom<ShellConfig>(
@@ -1588,6 +1590,9 @@ namespace noctalia::config::schema {
       }
       if (section == "hooks") {
         return chk(hooksSchema());
+      }
+      if (section == "accessibility") {
+        return chk(accessibilitySchema());
       }
       return false;
     }
@@ -2135,6 +2140,14 @@ namespace noctalia::config::schema {
             [](toml::table&, const BarMonitorOverride&) {}
         ),
         subTable(&BarMonitorOverride::deadZone, "dead_zone", barDeadZoneOverrideSchema()),
+    };
+    return s;
+  }
+
+  const Schema<AccessibilityConfig>& accessibilitySchema() {
+    static const Schema<AccessibilityConfig> s = {
+        field(&AccessibilityConfig::uiScale, "ui_scale", kScaleRange),
+        field(&AccessibilityConfig::highContrast, "high_contrast"),
     };
     return s;
   }

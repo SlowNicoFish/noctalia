@@ -214,6 +214,10 @@ struct SessionPanelActionConfig {
 
 struct ShellSessionConfig {
   std::vector<SessionPanelActionConfig> actions;
+  // Lay the session panel actions out over multiple rows of `gridColumns` instead of
+  // fitting them on a single row.
+  bool grid = false;
+  std::int32_t gridColumns = 3;
   // Optional overrides for built-in session power commands. Empty = auto-detect at runtime.
   struct ShellSessionPowerConfig {
     // Shell strings run with `/bin/sh -lc` (shell=True).
@@ -348,6 +352,7 @@ struct WidgetBarCapsuleSpec {
   std::optional<float> radius;
   // Capsule background opacity multiplier (0.0–1.0).
   float opacity = 1.0f;
+  bool hoverHighlight = true;
 
   bool operator==(const WidgetBarCapsuleSpec&) const = default;
 };
@@ -933,7 +938,6 @@ struct ShellConfig {
     bool operator==(const PrivacyConfig&) const = default;
   };
 
-  float uiScale = 1.0f;
   float cornerRadiusScale = 1.0f;
   std::string fontFamily = "sans-serif";
   std::string lang; // empty = auto-detect from $LC_ALL/$LC_MESSAGES/$LANG
@@ -1332,6 +1336,7 @@ struct ThemeConfig {
   std::string customPalette;
   std::string wallpaperScheme = "m3-content";
   ThemeMode mode = ThemeMode::Dark;
+  bool pureBlackDark = false;
   TemplatesConfig templates;
 
   bool operator==(const ThemeConfig&) const = default;
@@ -1397,6 +1402,13 @@ struct PluginsConfig {
 // Source names are stable user-facing handles and git source storage directory names.
 // Keep them flat so they can never escape the plugin source cache.
 [[nodiscard]] bool isValidPluginSourceName(std::string_view name);
+
+struct AccessibilityConfig {
+  float uiScale = 1.0f;
+  bool highContrast = false;
+  bool operator==(const AccessibilityConfig&) const = default;
+};
+
 struct HotCornersConfig {
   bool enabled = false;
 
@@ -1441,6 +1453,7 @@ struct Config {
   ThemeConfig theme;
   ControlCenterConfig controlCenter;
   PluginsConfig plugins;
+  AccessibilityConfig accessibility;
 };
 // Which top-level config sections changed across a reload. Default-constructed
 // to all-true (conservative: "assume everything changed") so any path that does
@@ -1472,6 +1485,7 @@ struct ConfigChangeSet {
   bool controlCenter = true;
   bool plugins = true;
   bool hotCorners = true;
+  bool accessibility = true;
 
   [[nodiscard]] bool any() const noexcept {
     return bars
@@ -1499,7 +1513,8 @@ struct ConfigChangeSet {
         || theme
         || controlCenter
         || plugins
-        || hotCorners;
+        || hotCorners
+        || accessibility;
   }
 };
 
