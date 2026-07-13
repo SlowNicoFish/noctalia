@@ -13,10 +13,8 @@ namespace day_night_schedule {
 
   namespace {
 
+    // Callers must have accepted the string through normalizedClock first.
     int timeToMinutes(std::string_view hhmm) {
-      if (hhmm.size() != 5) {
-        return 0; // unreachable in practice: callers validate with normalizedClock first
-      }
       return (hhmm[0] - '0') * 600 + (hhmm[1] - '0') * 60 + (hhmm[3] - '0') * 10 + (hhmm[4] - '0');
     }
 
