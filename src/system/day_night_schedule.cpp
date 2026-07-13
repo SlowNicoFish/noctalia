@@ -169,12 +169,12 @@ namespace day_night_schedule {
 
     const auto times = computeSolarTimes(*coords.latitude, *coords.longitude);
     if (times.sunriseMinutes == 0 && times.sunsetMinutes == 0) {
-      // Polar night: sun never rises. Retry in 6 hours (frequent recheck not useful here).
-      return Evaluation{.night = true, .untilBoundary = std::chrono::hours(6)};
+      // Polar night: the sun never rises, so there is no boundary today.
+      return Evaluation{.night = true, .untilBoundary = std::chrono::hours(1)};
     }
     if (times.sunriseMinutes == 0 && times.sunsetMinutes == 1440) {
-      // Polar day: sun never sets. Retry in 6 hours (frequent recheck not useful here).
-      return Evaluation{.night = false, .untilBoundary = std::chrono::hours(6)};
+      // Polar day: the sun never sets, so there is no boundary today.
+      return Evaluation{.night = false, .untilBoundary = std::chrono::hours(1)};
     }
 
     const int sunset = times.sunsetMinutes;
