@@ -87,7 +87,7 @@ radius = -7
     );
   }
 
-  void checkCustomSchedulingMigration() {
+  void checkCustomScheduleMigration() {
     toml::table legacy = toml::parse(R"(
 [location]
 sunset = "20:30"
@@ -96,7 +96,7 @@ sunrise = "07:30"
     noctalia::config::LegacyConfigIssues issues;
     noctalia::config::normalizeLegacyConfig(legacy, issues);
     expect(
-        legacy["location"]["enable_custom_scheduling"].value<bool>() == true,
+        legacy["location"]["custom_schedule"].value<bool>() == true,
         "a times-only location did not opt into custom scheduling"
     );
     expect(issues.size() == 1, "times-only location did not report a legacy issue");
@@ -112,7 +112,7 @@ sunrise = "07:30"
       noctalia::config::LegacyConfigIssues coordIssues;
       noctalia::config::normalizeLegacyConfig(coords, coordIssues);
       expect(
-          !coords["location"]["enable_custom_scheduling"].value<bool>().has_value(),
+          !coords["location"]["custom_schedule"].value<bool>().has_value(),
           "a location with coordinates was switched to custom scheduling"
       );
       expect(coordIssues.empty(), "a location with coordinates reported a legacy issue");
@@ -120,15 +120,15 @@ sunrise = "07:30"
 
     toml::table explicitOff = toml::parse(R"(
 [location]
-enable_custom_scheduling = false
+custom_schedule = false
 sunset = "20:30"
 sunrise = "07:30"
 )");
     noctalia::config::LegacyConfigIssues offIssues;
     noctalia::config::normalizeLegacyConfig(explicitOff, offIssues);
     expect(
-        explicitOff["location"]["enable_custom_scheduling"].value<bool>() == false,
-        "an explicit enable_custom_scheduling = false was overwritten"
+        explicitOff["location"]["custom_schedule"].value<bool>() == false,
+        "an explicit custom_schedule = false was overwritten"
     );
   }
 
@@ -272,7 +272,7 @@ radius = -10
 int main() {
   checkNegativeRadiusMigration();
   checkExtremeNegativeRadius();
-  checkCustomSchedulingMigration();
+  checkCustomScheduleMigration();
   checkVersionGating();
   checkReminderFingerprint();
   checkRegistryOrdering();

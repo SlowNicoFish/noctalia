@@ -2070,13 +2070,13 @@ namespace settings {
     // Custom scheduling — explicit sunrise/sunset times for night light and theme auto mode.
     {
       auto e = makeEntry(
-          SettingsSection::Location, "location", tr("settings.schema.services.custom-scheduling.label"),
-          tr("settings.schema.services.custom-scheduling.description"), {"location", "enable_custom_scheduling"},
-          ToggleSetting{cfg.location.enableCustomScheduling}, "schedule custom time sunrise sunset"
+          SettingsSection::Location, "location", tr("settings.schema.services.custom-schedule.label"),
+          tr("settings.schema.services.custom-schedule.description"), {"location", "custom_schedule"},
+          ToggleSetting{cfg.location.customSchedule}, "schedule custom time sunrise sunset"
       );
       entries.push_back(std::move(e));
     }
-    const SettingVisibility customSchedOn = [](const Config& c) { return c.location.enableCustomScheduling; };
+    const SettingVisibility customSchedOn = [](const Config& c) { return c.location.customSchedule; };
     {
       auto e = makeEntry(
           SettingsSection::Location, "location", tr("settings.schema.services.sunset.label"),

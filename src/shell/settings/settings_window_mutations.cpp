@@ -32,23 +32,23 @@ namespace {
     return config.lastMutationError().empty() ? fallback : config.lastMutationError();
   }
 
-  bool isCustomSchedulingPath(const std::vector<std::string>& path) {
+  bool isCustomSchedulePath(const std::vector<std::string>& path) {
     return path.size() == 2
         && path[0] == "location"
-        && (path[1] == "enable_custom_scheduling" || path[1] == "sunset" || path[1] == "sunrise");
+        && (path[1] == "custom_schedule" || path[1] == "sunset" || path[1] == "sunrise");
   }
 
 } // namespace
 
 // Custom scheduling with unusable times schedules nothing. The write itself is valid, so surface it
 // as a banner rather than rejecting it — the user is likely mid-edit between the toggle and the times.
-void SettingsWindow::warnOnUnusableCustomScheduling(const std::vector<std::string>& path) {
-  if (m_config == nullptr || !isCustomSchedulingPath(path)) {
+void SettingsWindow::warnOnUnusableCustomSchedule(const std::vector<std::string>& path) {
+  if (m_config == nullptr || !isCustomSchedulePath(path)) {
     return;
   }
   const LocationConfig& location = m_config->config().location;
-  if (location.enableCustomScheduling && !day_night_schedule::hasUsableCustomTimes(location)) {
-    showTransientStatus(i18n::tr("settings.errors.custom-scheduling-times"), true);
+  if (location.customSchedule && !day_night_schedule::hasUsableCustomTimes(location)) {
+    showTransientStatus(i18n::tr("settings.errors.custom-schedule-times"), true);
   }
 }
 
@@ -126,7 +126,7 @@ void SettingsWindow::setSettingOverride(std::vector<std::string> path, ConfigOve
     if (m_config->setOverride(path, std::move(value), &changed)) {
       const bool registryPatched = changed && !needsSceneRebuild && tryPatchSettingsRegistryValue(path, patchValue);
       finishSettingsWrite(changed, needsSceneRebuild, previousResetPaths != currentPageResetPaths(), registryPatched);
-      warnOnUnusableCustomScheduling(path);
+      warnOnUnusableCustomSchedule(path);
       return;
     }
     markSettingsWriteError(settingsMutationError(*m_config, i18n::tr("settings.errors.write")));

@@ -136,9 +136,7 @@ namespace day_night_schedule {
     return normalizedClock(config.sunset).has_value() && normalizedClock(config.sunrise).has_value();
   }
 
-  bool isManualMode(const LocationConfig& config) {
-    return config.enableCustomScheduling && hasUsableCustomTimes(config);
-  }
+  bool isManualMode(const LocationConfig& config) { return config.customSchedule && hasUsableCustomTimes(config); }
 
   Evaluation evaluate(
       const LocationConfig& config, std::optional<double> resolvedLatitude, std::optional<double> resolvedLongitude

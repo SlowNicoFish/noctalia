@@ -175,7 +175,7 @@ namespace noctalia::config::schema {
     static const Schema<LocationConfig> s = {
         field(&LocationConfig::autoLocate, "auto_locate"),
         field(&LocationConfig::address, "address"),
-        field(&LocationConfig::enableCustomScheduling, "enable_custom_scheduling"),
+        field(&LocationConfig::customSchedule, "custom_schedule"),
         field(&LocationConfig::sunset, "sunset"),
         field(&LocationConfig::sunrise, "sunrise"),
         field(&LocationConfig::latitude, "latitude"),

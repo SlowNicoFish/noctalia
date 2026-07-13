@@ -81,7 +81,7 @@ namespace noctalia::config {
       return merged;
     }
 
-    // enable_custom_scheduling promises a sunset/sunrise schedule. If the times cannot deliver one,
+    // custom_schedule promises a sunset/sunrise schedule. If the times cannot deliver one,
     // say so instead of silently scheduling by coordinates (or not at all).
     void validateLocation(const toml::table& merged, schema::Diagnostics& diag) {
       const auto* location = merged["location"].as_table();
@@ -89,22 +89,21 @@ namespace noctalia::config {
         return;
       }
 
-      const bool customScheduling = (*location)["enable_custom_scheduling"].value_or(false);
+      const bool customSchedule = (*location)["custom_schedule"].value_or(false);
       for (const std::string_view key : {"sunset", "sunrise"}) {
         const std::string path = "location." + std::string(key);
         const auto value = (*location)[key].value<std::string>();
         const bool set = value.has_value() && !value->empty();
         if (set && !day_night_schedule::normalizedClock(*value).has_value()) {
           const std::string message = "\"" + *value + "\" is not a time of day in HH:MM form";
-          if (customScheduling) {
+          if (customSchedule) {
             diag.error(path, message, "location.clock.invalid");
           } else {
             diag.warn(path, message);
           }
-        } else if (!set && customScheduling) {
+        } else if (!set && customSchedule) {
           diag.error(
-              path, "enable_custom_scheduling needs a " + std::string(key) + " time in HH:MM form",
-              "location.clock.missing"
+              path, "custom_schedule needs a " + std::string(key) + " time in HH:MM form", "location.clock.missing"
           );
         }
       }

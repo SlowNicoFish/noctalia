@@ -13,7 +13,7 @@ namespace noctalia::config {
   namespace {
 
     constexpr int kNegativeBarRadiusMigrationVersion = 1;
-    constexpr int kCustomSchedulingMigrationVersion = 2;
+    constexpr int kCustomScheduleMigrationVersion = 2;
     constexpr std::int64_t kMaxBarRadius = 500;
     constexpr std::array<std::string_view, 5> kBarRadiusKeys = {
         "radius", "radius_top_left", "radius_top_right", "radius_bottom_left", "radius_bottom_right",
@@ -75,11 +75,11 @@ namespace noctalia::config {
     }
 
     // sunset/sunrise used to schedule day/night on their own whenever no coordinates were available.
-    // They now require enable_custom_scheduling. Turn it on for configs that relied on the old behavior,
+    // They now require custom_schedule. Turn it on for configs that relied on the old behavior,
     // i.e. times are set and no coordinate source is.
-    template <typename OnChanged> void migrateCustomScheduling(toml::table& root, OnChanged&& onChanged) {
+    template <typename OnChanged> void migrateCustomSchedule(toml::table& root, OnChanged&& onChanged) {
       auto* location = root["location"].as_table();
-      if (location == nullptr || location->contains("enable_custom_scheduling")) {
+      if (location == nullptr || location->contains("custom_schedule")) {
         return;
       }
 
@@ -96,13 +96,13 @@ namespace noctalia::config {
         return;
       }
 
-      location->insert_or_assign("enable_custom_scheduling", true);
+      location->insert_or_assign("custom_schedule", true);
       onChanged("location");
     }
 
-    void migrateCustomSchedulingSidecar(toml::table& root, schema::Diagnostics& diag) {
-      migrateCustomScheduling(root, [&diag](const std::string& path) {
-        diag.warn(path, "sunset/sunrise now require enable_custom_scheduling; enabled it to keep the schedule");
+    void migrateCustomScheduleSidecar(toml::table& root, schema::Diagnostics& diag) {
+      migrateCustomSchedule(root, [&diag](const std::string& path) {
+        diag.warn(path, "sunset/sunrise now require custom_schedule; enabled it to keep the schedule");
       });
     }
 
@@ -149,9 +149,9 @@ namespace noctalia::config {
             .apply = migrateNegativeBarRadiiSidecar,
         },
         {
-            .toVersion = kCustomSchedulingMigrationVersion,
-            .summary = "location: opt legacy sunset/sunrise schedules into enable_custom_scheduling",
-            .apply = migrateCustomSchedulingSidecar,
+            .toVersion = kCustomScheduleMigrationVersion,
+            .summary = "location: opt legacy sunset/sunrise schedules into custom_schedule",
+            .apply = migrateCustomScheduleSidecar,
         },
     };
     return migrations;
@@ -212,11 +212,11 @@ namespace noctalia::config {
           .message = "negative corner radii are deprecated; use positive radii and concave_edge_corners = true",
       });
     });
-    migrateCustomScheduling(root, [&issues](const std::string& path) {
+    migrateCustomSchedule(root, [&issues](const std::string& path) {
       issues.push_back({
-          .migrationVersion = kCustomSchedulingMigrationVersion,
+          .migrationVersion = kCustomScheduleMigrationVersion,
           .path = path,
-          .message = "sunset/sunrise no longer schedule on their own; set enable_custom_scheduling = true",
+          .message = "sunset/sunrise no longer schedule on their own; set custom_schedule = true",
       });
     });
   }
