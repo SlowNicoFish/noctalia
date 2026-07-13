@@ -132,10 +132,12 @@ namespace day_night_schedule {
     return {};
   }
 
+  bool hasUsableCustomTimes(const LocationConfig& config) {
+    return normalizedClock(config.sunset).has_value() && normalizedClock(config.sunrise).has_value();
+  }
+
   bool isManualMode(const LocationConfig& config) {
-    return config.enableCustomScheduling
-        && normalizedClock(config.sunset).has_value()
-        && normalizedClock(config.sunrise).has_value();
+    return config.enableCustomScheduling && hasUsableCustomTimes(config);
   }
 
   Evaluation evaluate(

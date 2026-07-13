@@ -402,20 +402,21 @@ GammaService::GammaTarget GammaService::computeTarget() const {
 
   const bool manualMode = day_night_schedule::isManualMode(m_location);
   if (!manualMode) {
+    const bool customTimesUsable = day_night_schedule::hasUsableCustomTimes(m_location);
+    if (m_location.enableCustomScheduling && !customTimesUsable) {
+      // Custom scheduling was asked for but cannot run: the times are missing or not HH:MM.
+      kLog.warn("custom scheduling is on but sunset/sunrise are not both set to an HH:MM time");
+    }
+
     const auto coords = day_night_schedule::resolveCoordinates(m_location, m_resolvedLatitude, m_resolvedLongitude);
     if (!coords.latitude.has_value() || !coords.longitude.has_value()) {
       if (m_locationResolving || networkLocationConfigured()) {
         kLog.debug("night light schedule waiting for location resolution");
       } else if (m_location.latitude.has_value() != m_location.longitude.has_value()) {
         kLog.warn("need both latitude and longitude for manual location");
-      } else if (
-          day_night_schedule::normalizedClock(m_location.sunset).has_value()
-          && day_night_schedule::normalizedClock(m_location.sunrise).has_value()
-      ) {
-        kLog.warn(
-            "sunrise/sunset times are set but custom scheduling is off! Enable it in Location settings to use them"
-        );
-      } else {
+      } else if (!m_location.enableCustomScheduling && customTimesUsable) {
+        kLog.warn("sunrise/sunset times are set but custom scheduling is off; enable it in Location settings");
+      } else if (!m_location.enableCustomScheduling) {
         kLog.warn(
             "no schedule: enable auto-locate, set an address, set latitude/longitude, or enable custom scheduling in "
             "location settings"

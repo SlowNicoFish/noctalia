@@ -1020,6 +1020,7 @@
         "rename": "Could not rename bar."
       },
       "batch-write": "Some settings could not be saved.",
+      "custom-scheduling-times": "Custom scheduling needs both a sunrise and a sunset time in HH:MM form.",
       "export-config": "Failed to save config export.",
       "export-wallpaper-palette": "Could not save the wallpaper palette as a custom palette.",
       "monitor-override": {
